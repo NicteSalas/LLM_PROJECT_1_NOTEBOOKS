@@ -1,0 +1,1215 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sesión 3: De Embeddings a Transformers</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+            overflow: hidden;
+        }
+        
+        .slides-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .slide {
+            display: none;
+            background: white;
+            width: 90vw;
+            max-width: 1200px;
+            height: 85vh;
+            max-height: 700px;
+            padding: 60px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow-y: auto;
+        }
+        
+        .slide.active { display: block; animation: fadeIn 0.5s; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        h1 {
+            font-size: 2.8em;
+            font-weight: 700;
+            color: #667eea;
+            margin-bottom: 30px;
+            line-height: 1.2;
+        }
+        
+        h2 {
+            font-size: 2em;
+            font-weight: 600;
+            color: #764ba2;
+            margin: 30px 0 20px 0;
+        }
+        
+        h3 {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #4a90e2;
+            margin: 20px 0 15px 0;
+        }
+        
+        p, li {
+            font-size: 1.2em;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 20px;
+        }
+        
+        code {
+            font-family: 'Fira Code', monospace;
+            background: #f5f5f5;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+        
+        .btn {
+            background: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .slide-number {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .subtitle {
+            font-size: 1.5em;
+            color: #666;
+            margin-top: 20px;
+        }
+        
+        .center { text-align: center; }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 20px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin: 20px 0;
+        }
+        
+        .checkmark { color: #28a745; font-weight: bold; }
+        .xmark { color: #dc3545; font-weight: bold; }
+        
+        /* Visualizaciones custom */
+        .viz-container {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 12px;
+            margin: 20px 0;
+        }
+        
+        .embedding-levels {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            align-items: center;
+        }
+        
+        .level {
+            background: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            border: 3px solid #667eea;
+            font-weight: 600;
+            min-width: 300px;
+            text-align: center;
+        }
+        
+        .arrow-down {
+            font-size: 2em;
+            color: #667eea;
+        }
+        
+        .attention-matrix {
+            display: grid;
+            grid-template-columns: repeat(4, 60px);
+            gap: 5px;
+            margin: 20px auto;
+            justify-content: center;
+        }
+        
+        .attention-cell {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.5em;
+        }
+        
+        .high-attention {
+            background: #667eea;
+            color: white;
+        }
+        
+        .low-attention {
+            background: #e9ecef;
+            color: #666;
+        }
+        
+        .transformer-box {
+            background: white;
+            border: 3px solid #667eea;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 10px 0;
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .timeline {
+            position: relative;
+            padding-left: 40px;
+        }
+        
+        .timeline-item {
+            position: relative;
+            padding: 15px 0;
+            border-left: 3px solid #667eea;
+            padding-left: 30px;
+        }
+        
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -9px;
+            top: 20px;
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            background: #667eea;
+        }
+        
+        .timeline-highlight {
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #667eea;
+            color: white;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="slides-container">
+        <!-- Slide 1: Portada -->
+        <div class="slide active center">
+            <h1 style="font-size: 3.5em; margin-top: 80px;">De Embeddings a Transformers</h1>
+            <p class="subtitle">La Revolución de la Inteligencia Artificial</p>
+            <p style="margin-top: 80px; font-size: 1.3em;">
+                <strong>Proyecto I - Introducción a Large Language Models</strong><br>
+                Prof. Francisco Pérez Carbajal<br>
+                Facultad de Ciencias, UNAM<br>
+                <em>Sesión 3</em>
+            </p>
+        </div>
+
+        <!-- Slide 2: Recap -->
+        <div class="slide">
+            <h1>📝 Recap: ¿Qué Aprendimos?</h1>
+            
+            <h2 style="margin-top: 40px;">Sesión pasada:</h2>
+            
+            <div class="two-column">
+                <div>
+                    <h3><span class="xmark">❌</span> Bag-of-Words</h3>
+                    <ul>
+                        <li>Cuenta palabras</li>
+                        <li>Ignora orden</li>
+                        <li>Ignora significado</li>
+                        <li>Alta dimensionalidad</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3><span class="checkmark">✓</span> Word2Vec</h3>
+                    <ul>
+                        <li>Embeddings densos (300D)</li>
+                        <li>Captura significado</li>
+                        <li>Similitud semántica</li>
+                        <li>Operaciones (analogías)</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="highlight" style="margin-top: 40px; font-size: 1.2em;">
+                <strong>Pero... ¿Qué falta?</strong><br>
+                ❓ ¿Y las frases completas?<br>
+                ❓ ¿Y el contexto?<br>
+                ❓ "Bank" (¿banco financiero o río?)
+            </div>
+        </div>
+
+        <!-- Slide 3: El Problema -->
+        <div class="slide">
+            <h1>El Problema de Word2Vec</h1>
+            
+            <h2>Contexto Importa:</h2>
+            
+            <pre style="font-size: 1.1em;">
+Oración 1: "I went to the bank to deposit money"
+           (banco financiero 🏦)
+
+Oración 2: "I sat by the river bank"
+           (orilla del río 🏞️)
+
+Word2Vec:
+"bank" → [0.2, 0.8, -0.3, ...]  <span class="xmark">← SIEMPRE IGUAL</span>
+</pre>
+            
+            <div class="highlight" style="margin-top: 40px; font-size: 1.3em;">
+                <strong>❌ Problema:</strong> NO captura contexto<br>
+                <strong>✓ Solución:</strong> Necesitamos embeddings <em>contextuales</em>
+            </div>
+            
+            <h2 style="margin-top: 40px;">Hoy veremos 3 avances clave:</h2>
+            <ol style="font-size: 1.2em;">
+                <li>Types of Embeddings</li>
+                <li>Attention Mechanism</li>
+                <li>Transformers</li>
+            </ol>
+        </div>
+
+        <!-- Slide 4: Types of Embeddings -->
+        <div class="slide">
+            <h1>Tipos de Embeddings</h1>
+            
+            <div class="viz-container">
+                <div class="embedding-levels">
+                    <div class="level" style="font-size: 1.3em;">
+                        📝 DOCUMENTO COMPLETO
+                    </div>
+                    <div class="arrow-down">↓</div>
+                    <div class="level" style="border-color: #28a745;">
+                        📄 Document Embeddings
+                    </div>
+                    <div class="arrow-down">↓</div>
+                    <div class="level" style="border-color: #ffc107;">
+                        📋 Sentence Embeddings
+                    </div>
+                    <div class="arrow-down">↓</div>
+                    <div class="level" style="border-color: #dc3545;">
+                        🔤 Word Embeddings<br>
+                        <small>(Word2Vec - ya lo conocemos)</small>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="highlight" style="margin-top: 30px; font-size: 1.2em;">
+                <strong>💡 Insight:</strong> Podemos crear embeddings a <strong>diferentes niveles de abstracción</strong>
+            </div>
+        </div>
+
+        <!-- Slide 5: Word Embeddings Recap -->
+        <div class="slide">
+            <h1>Word Embeddings (Recap)</h1>
+            
+            <h2>Ya lo conocemos:</h2>
+            
+            <pre style="font-size: 1.2em;">
+"gato" → [0.2, 0.8, -0.3, ..., 0.5]  (300 dimensiones)
+"perro" → [0.1, 0.7, -0.2, ..., 0.4]
+"mesa"  → [-0.5, 0.1, 0.6, ..., -0.3]
+</pre>
+            
+            <h3 style="margin-top: 40px;"><span class="checkmark">✓</span> Ventajas:</h3>
+            <ul style="font-size: 1.2em;">
+                <li>Captura similitud entre palabras</li>
+                <li>Operaciones matemáticas (analogías)</li>
+                <li>Base sólida para NLP</li>
+            </ul>
+            
+            <h3 style="margin-top: 40px;"><span class="xmark">✗</span> Limitación crítica:</h3>
+            <div class="highlight" style="font-size: 1.3em;">
+                <strong>NO captura el contexto de la oración</strong><br>
+                Cada palabra tiene UN solo embedding, sin importar dónde aparece
+            </div>
+        </div>
+
+        <!-- Slide 6: Sentence Embeddings -->
+        <div class="slide">
+            <h1>Sentence Embeddings</h1>
+            
+            <h2>Idea: Representar frases completas como vectores</h2>
+            
+            <pre style="font-size: 1.1em;">
+"El gato come pescado"  → [0.1, 0.4, 0.7, ..., 0.2]  (768D)
+"El perro come carne"   → [0.1, 0.3, 0.8, ..., 0.3]
+"El clima está soleado" → [-0.5, 0.2, 0.1, ..., -0.4]
+</pre>
+            
+            <h3 style="margin-top: 30px;"><span class="checkmark">✓</span> Ventajas:</h3>
+            <ul style="font-size: 1.2em;">
+                <li>Captura el significado de la <strong>frase COMPLETA</strong></li>
+                <li>Frases similares → vectores cercanos</li>
+                <li>Ignora detalles sintácticos irrelevantes</li>
+            </ul>
+            
+            <h3 style="margin-top: 30px;">📊 Aplicaciones:</h3>
+            <ul style="font-size: 1.2em;">
+                <li><strong>Búsqueda semántica:</strong> "perro grande" encuentra "canino enorme"</li>
+                <li><strong>Detección de paráfrasis:</strong> ¿Dicen lo mismo?</li>
+                <li><strong>Clustering:</strong> Agrupar textos similares</li>
+                <li><strong>Sistemas de recomendación:</strong> Contenido similar</li>
+            </ul>
+        </div>
+
+        <!-- Slide 7: Document Embeddings -->
+        <div class="slide">
+            <h1>Document Embeddings</h1>
+            
+            <h2>Idea: Representar documentos completos</h2>
+            
+            <div class="viz-container">
+                <pre style="background: white; color: #333; font-size: 1.1em;">
+📄 Documento completo (cientos de palabras)
+           ↓
+    [0.3, -0.1, 0.8, ..., 0.5]
+           ↓
+     Vector único que representa
+     todo el contenido semántico
+</pre>
+            </div>
+            
+            <h3><span class="checkmark">✓</span> Modelos:</h3>
+            <ul style="font-size: 1.2em;">
+                <li><strong>Bag-of-words:</strong> Tipo básico de document embedding</li>
+                <li><strong>Doc2Vec:</strong> Extensión de word2vec</li>
+                <li><strong>BERT [CLS]:</strong> Token especial para documento</li>
+                <li><strong>Paragraph vectors:</strong> Aprendizaje no supervisado</li>
+            </ul>
+            
+            <h3 style="margin-top: 30px;">📊 Aplicaciones:</h3>
+            <ul style="font-size: 1.2em;">
+                <li>Clasificación de documentos</li>
+                <li>Clustering de artículos</li>
+                <li>Detección de plagio</li>
+                <li>Búsqueda de documentos similares</li>
+            </ul>
+        </div>
+
+        <!-- Slide 8: Demo Transition -->
+        <div class="slide center">
+            <h1>👨‍💻 Demo: Sentence Embeddings en Acción</h1>
+            
+            <h2 style="margin-top: 60px;">¿Cómo se ve esto en práctica?</h2>
+            
+            <div class="highlight" style="margin-top: 60px; text-align: left;">
+                <h3>Vamos a ver:</h3>
+                <ul style="font-size: 1.3em;">
+                    <li><span class="checkmark">✓</span> Cargar modelo sentence-transformers</li>
+                    <li><span class="checkmark">✓</span> Crear embeddings de frases</li>
+                    <li><span class="checkmark">✓</span> Calcular similitud semántica</li>
+                    <li><span class="checkmark">✓</span> Experimentar con tus propias frases</li>
+                </ul>
+            </div>
+            
+            <p style="margin-top: 60px; font-size: 1.4em;">
+                <strong>📱 Abran el notebook en Colab</strong>
+            </p>
+        </div>
+
+        <!-- Slide 9: Problema RNN -->
+        <div class="slide">
+            <h1>El Problema del Context Embedding</h1>
+            
+            <h2>Historia:</h2>
+            <div class="timeline">
+                <div class="timeline-item">
+                    <strong>2013:</strong> Word2Vec → embeddings estáticos
+                </div>
+                <div class="timeline-item">
+                    <strong>2014:</strong> RNNs para procesar secuencias
+                </div>
+            </div>
+            
+            <h2 style="margin-top: 40px;">Problema con RNNs:</h2>
+            
+            <div class="viz-container">
+                <pre style="font-size: 1.1em; background: white; color: #333;">
+Encoder RNN:
+"I love llamas" → [📦 embedding único]
+                       ↓
+                  Decoder RNN:
+              "Ik hou van lama's"
+</pre>
+            </div>
+            
+            <div class="highlight" style="margin-top: 30px;">
+                <strong><span class="xmark">❌</span> Problema: Information Bottleneck</strong>
+                <ul style="margin-top: 10px;">
+                    <li>Todo comprimido en UN solo vector</li>
+                    <li>Pierde información en oraciones largas</li>
+                    <li>¿Cómo representar un libro en 300 números?</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 10: Attention Solution -->
+        <div class="slide">
+            <h1>💡 La Solución: Attention (2014)</h1>
+            
+            <h2>El Breakthrough:</h2>
+            <div class="highlight" style="font-size: 1.3em;">
+                <strong>Idea:</strong> ¿Y si el decoder pudiera <strong>MIRAR</strong> diferentes partes del input según necesite?
+            </div>
+            
+            <h3 style="margin-top: 40px;">Attention Mechanism:</h3>
+            <ul style="font-size: 1.2em;">
+                <li>No comprimir todo en un vector</li>
+                <li>El decoder "atiende" a diferentes palabras</li>
+                <li>Enfoque dinámico según contexto</li>
+            </ul>
+            
+            <h3 style="margin-top: 40px;">Ejemplo:</h3>
+            <pre style="font-size: 1.1em;">
+Input:  "I     love    llamas"
+Output: "Ik    hou     van     lama's"
+         ↓      ↓       ↓        ↓
+       atiende a diferentes partes del input
+
+Cuando genera "lama's":
+→ Atiende MUCHO a "llamas" (alta atención) ●
+→ Atiende POCO a "I" (baja atención) ○
+</pre>
+        </div>
+
+        <!-- Slide 11: Attention Visualization -->
+        <div class="slide">
+            <h1>Visualización de Attention</h1>
+            
+            <h2>Matriz de Atención:</h2>
+            
+            <div class="viz-container">
+                <table style="margin: 0 auto; width: auto;">
+                    <tr>
+                        <th></th>
+                        <th>I</th>
+                        <th>love</th>
+                        <th>llamas</th>
+                    </tr>
+                    <tr>
+                        <td><strong>Ik</strong></td>
+                        <td class="attention-cell high-attention">●</td>
+                        <td class="attention-cell low-attention">○</td>
+                        <td class="attention-cell low-attention">○</td>
+                    </tr>
+                    <tr>
+                        <td><strong>hou</strong></td>
+                        <td class="attention-cell low-attention">○</td>
+                        <td class="attention-cell high-attention">●</td>
+                        <td class="attention-cell low-attention">○</td>
+                    </tr>
+                    <tr>
+                        <td><strong>van</strong></td>
+                        <td class="attention-cell low-attention">○</td>
+                        <td class="attention-cell high-attention">●</td>
+                        <td class="attention-cell low-attention">○</td>
+                    </tr>
+                    <tr>
+                        <td><strong>lama's</strong></td>
+                        <td class="attention-cell low-attention">○</td>
+                        <td class="attention-cell low-attention">○</td>
+                        <td class="attention-cell high-attention">●</td>
+                    </tr>
+                </table>
+                
+                <p style="text-align: center; margin-top: 20px; font-size: 1.1em;">
+                    <strong>●</strong> = Alta atención  
+                    <strong>○</strong> = Baja atención
+                </p>
+            </div>
+            
+            <div class="highlight" style="margin-top: 30px; font-size: 1.3em;">
+                <strong>💡 Mensaje clave:</strong><br>
+                Attention permite al modelo <strong>ENFOCARSE</strong> en las partes relevantes
+            </div>
+        </div>
+
+        <!-- Slide 12: How Attention Works -->
+        <div class="slide">
+            <h1>¿Cómo Funciona Attention?</h1>
+            
+            <h2>Intuición (sin ecuaciones todavía):</h2>
+            
+            <div class="viz-container">
+                <h3>Paso 1: Encoder procesa input</h3>
+                <pre style="background: white; color: #333;">
+"I love llamas" → [h₁, h₂, h₃]
+                   ↑   ↑   ↑
+              Un vector por palabra
+</pre>
+                
+                <h3 style="margin-top: 30px;">Paso 2: Decoder en cada paso</h3>
+                <pre style="background: white; color: #333;">
+Decoder pregunta:
+"¿Qué palabra del input es más relevante AHORA?"
+    ↓
+Calcula attention weights (importancia)
+    ↓
+Pondera los vectores del encoder
+    ↓
+Genera siguiente palabra
+</pre>
+                
+                <h3 style="margin-top: 30px;">Paso 3: Resultado</h3>
+                <pre style="background: white; color: #333;">
+Contexto dinámico en CADA paso
+(no un solo embedding estático)
+</pre>
+            </div>
+        </div>
+
+        <!-- Slide 13: Attention Benefits -->
+        <div class="slide">
+            <h1>Beneficios de Attention</h1>
+            
+            <h2><span class="checkmark">✓</span> Ventajas:</h2>
+            
+            <div class="two-column" style="margin-top: 40px;">
+                <div>
+                    <h3>1. Oraciones largas</h3>
+                    <p>No comprime todo en un vector<br>Mantiene información relevante</p>
+                    
+                    <h3 style="margin-top: 30px;">2. Interpretable</h3>
+                    <p>Podemos visualizar qué atiende<br>Debugging más fácil</p>
+                </div>
+                
+                <div>
+                    <h3>3. Mejor performance</h3>
+                    <p>Especialmente en traducción<br>y tareas de secuencia</p>
+                    
+                    <h3 style="margin-top: 30px;">4. Flexible</h3>
+                    <p>Adaptable a diferentes longitudes<br>No necesita tamaño fijo</p>
+                </div>
+            </div>
+            
+            <div class="highlight" style="margin-top: 50px; font-size: 1.3em;">
+                <strong>Pero... todavía hay un problema 🤔</strong><br>
+                RNNs son <strong>secuenciales</strong> → No se pueden paralelizar → Lentos
+            </div>
+        </div>
+
+        <!-- Slide 14: Transformers Intro -->
+        <div class="slide center">
+            <h1>"Attention Is All You Need" (2017)</h1>
+            
+            <h2 style="margin-top: 60px;">El Paper Más Influyente</h2>
+            
+            <div class="highlight" style="text-align: left; margin-top: 60px; font-size: 1.3em;">
+                <strong>💡 Idea Revolucionaria:</strong><br><br>
+                ¿Y si <strong>ELIMINAMOS</strong> las RNNs<br>
+                y usamos <strong>SOLO ATTENTION</strong>?
+            </div>
+            
+            <h3 style="margin-top: 60px;">Beneficios:</h3>
+            <ul style="font-size: 1.3em; text-align: left;">
+                <li><span class="checkmark">✓</span> Procesamiento <strong>paralelo</strong> (mucho más rápido)</li>
+                <li><span class="checkmark">✓</span> Mejor captura de dependencias largas</li>
+                <li><span class="checkmark">✓</span> Más fácil de entrenar</li>
+            </ul>
+            
+            <h2 style="margin-top: 60px; font-size: 2.5em;">
+                <strong>Resultado: Transformer 🚀</strong>
+            </h2>
+        </div>
+
+        <!-- Slide 15: Transformer Architecture -->
+        <div class="slide">
+            <h1>Arquitectura Transformer (Overview)</h1>
+            
+            <div class="viz-container">
+                <div style="display: flex; justify-content: center; gap: 40px;">
+                    <div style="text-align: center;">
+                        <h3>Componentes Principales</h3>
+                        <div class="transformer-box">Input Embedding</div>
+                        <div style="margin: 10px 0; font-size: 1.5em;">↓</div>
+                        <div class="transformer-box" style="background: #e3f2fd;">
+                            Encoder (N capas)<br>
+                            <small>Self-Attention</small>
+                        </div>
+                        <div style="margin: 10px 0; font-size: 1.5em;">↓</div>
+                        <div class="transformer-box" style="background: #fff3cd;">
+                            Decoder (N capas)<br>
+                            <small>Self-Attention + Cross-Attention</small>
+                        </div>
+                        <div style="margin: 10px 0; font-size: 1.5em;">↓</div>
+                        <div class="transformer-box">Output</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="highlight" style="margin-top: 30px;">
+                <strong>Nota:</strong> No profundizaremos en todos los detalles todavía.<br>
+                Primero entendamos el concepto general.
+            </div>
+        </div>
+
+        <!-- Slide 16: Self-Attention -->
+        <div class="slide">
+            <h1>Self-Attention: La Magia ✨</h1>
+            
+            <h2>Diferencia clave:</h2>
+            
+            <div class="two-column" style="margin-top: 40px;">
+                <div>
+                    <h3>Attention en RNN:</h3>
+                    <pre style="font-size: 1em;">
+Decoder atiende 
+   al Encoder
+
+Input → Encoder
+         ↓
+      Decoder ← atiende aquí
+</pre>
+                </div>
+                
+                <div>
+                    <h3>Self-Attention:</h3>
+                    <pre style="font-size: 1em;">
+Una secuencia se 
+atiende a SÍ MISMA
+
+Input → Procesar
+        ↓
+     Atiende a sí mismo
+</pre>
+                </div>
+            </div>
+            
+            <h3 style="margin-top: 40px;">Ejemplo:</h3>
+            <pre style="font-size: 1.1em;">
+"The animal didn't cross the street because it was too tired"
+                                                   ↑
+Self-attention permite que "it" atienda a "animal"
+→ Entiende a qué se refiere "it"
+</pre>
+            
+            <div class="highlight" style="margin-top: 30px; font-size: 1.2em;">
+                <strong>💡 Beneficio clave:</strong><br>
+                • Captura relaciones dentro de la misma secuencia<br>
+                • Procesa todo en <strong>paralelo</strong> (no secuencial)<br>
+                • Puede "mirar" hacia adelante Y atrás simultáneamente
+            </div>
+        </div>
+
+        <!-- Slide 17: Encoder Block -->
+        <div class="slide">
+            <h1>Encoder Block en Detalle</h1>
+            
+            <div class="viz-container">
+                <div class="transformer-box" style="background: #e3f2fd;">
+                    <h3>Multi-Head Self-Attention</h3>
+                    <p style="font-size: 0.9em; font-weight: normal;">Múltiples "cabezas" aprenden diferentes patrones</p>
+                </div>
+                <div style="margin: 15px 0; font-size: 1.5em; text-align: center;">↓</div>
+                <div class="transformer-box" style="background: #f3e5f5;">
+                    <h3>Add & Norm</h3>
+                    <p style="font-size: 0.9em; font-weight: normal;">Residual connection + Layer Normalization</p>
+                </div>
+                <div style="margin: 15px 0; font-size: 1.5em; text-align: center;">↓</div>
+                <div class="transformer-box" style="background: #e8f5e9;">
+                    <h3>Feed-Forward Network</h3>
+                    <p style="font-size: 0.9em; font-weight: normal;">Red neuronal simple (2 capas)</p>
+                </div>
+                <div style="margin: 15px 0; font-size: 1.5em; text-align: center;">↓</div>
+                <div class="transformer-box" style="background: #f3e5f5;">
+                    <h3>Add & Norm</h3>
+                    <p style="font-size: 0.9em; font-weight: normal;">Otra residual connection + normalization</p>
+                </div>
+            </div>
+            
+            <p style="text-align: center; margin-top: 30px; font-size: 1.2em;">
+                <strong>Se apilan N veces</strong> (típicamente 6-12 capas)
+            </p>
+        </div>
+
+        <!-- Slide 18: Decoder Block -->
+        <div class="slide">
+            <h1>Decoder Block</h1>
+            
+            <h2>Similar al encoder PERO con 3 componentes:</h2>
+            
+            <div class="viz-container">
+                <div class="transformer-box" style="background: #ffebee;">
+                    <h3>1. Masked Self-Attention</h3>
+                    <p style="font-size: 0.9em; font-weight: normal;">Solo ve palabras ANTERIORES<br>(no hace "trampa" viendo el futuro)</p>
+                </div>
+                <div style="margin: 15px 0; font-size: 1.5em; text-align: center;">↓</div>
+                <div class="transformer-box" style="background: #fff3cd;">
+                    <h3>2. Cross-Attention</h3>
+                    <p style="font-size: 0.9em; font-weight: normal;">Atiende al output del encoder<br>(como attention en RNNs)</p>
+                </div>
+                <div style="margin: 15px 0; font-size: 1.5em; text-align: center;">↓</div>
+                <div class="transformer-box" style="background: #e8f5e9;">
+                    <h3>3. Feed-Forward Network</h3>
+                    <p style="font-size: 0.9em; font-weight: normal;">Procesa representaciones</p>
+                </div>
+            </div>
+            
+            <div class="highlight" style="margin-top: 30px;">
+                <strong>Diferencia clave con encoder:</strong><br>
+                Decoder tiene attention layer ADICIONAL que atiende al encoder
+            </div>
+        </div>
+
+        <!-- Slide 19: Why Transformers Work -->
+        <div class="slide">
+            <h1>¿Por Qué Funcionó Tan Bien?</h1>
+            
+            <h2>Ventajas que revolucionaron el campo:</h2>
+            
+            <div style="margin-top: 40px;">
+                <h3><span class="checkmark">✓</span> 1. Paralelización</h3>
+                <p style="font-size: 1.2em;">
+                    RNNs: procesan palabra por palabra (lento)<br>
+                    Transformers: procesan todas a la vez (rápido)
+                </p>
+                
+                <h3 style="margin-top: 30px;"><span class="checkmark">✓</span> 2. Long-range dependencies</h3>
+                <p style="font-size: 1.2em;">
+                    Attention directa entre cualquier par de tokens<br>
+                    No importa qué tan lejos estén
+                </p>
+                
+                <h3 style="margin-top: 30px;"><span class="checkmark">✓</span> 3. Escalabilidad</h3>
+                <p style="font-size: 1.2em;">
+                    Funciona MEJOR con más datos y más parámetros<br>
+                    (¡No se "satura"!)
+                </p>
+            </div>
+            
+            <div class="timeline" style="margin-top: 50px;">
+                <div class="timeline-item">
+                    <strong>2017:</strong> Transformer paper
+                </div>
+                <div class="timeline-item">
+                    <strong>2018:</strong> BERT (encoder-only)
+                </div>
+                <div class="timeline-item">
+                    <strong>2019:</strong> GPT-2 (decoder-only)
+                </div>
+                <div class="timeline-item">
+                    <strong>2020:</strong> GPT-3 (175B parámetros)
+                </div>
+                <div class="timeline-item timeline-highlight">
+                    <strong>2023:</strong> ChatGPT 🚀
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide 20: Math (Optional) -->
+        <div class="slide">
+            <h1>[OPCIONAL] La Matemática Básica</h1>
+            
+            <h2>Self-Attention en 3 pasos:</h2>
+            
+            <div class="viz-container">
+                <h3>Paso 1: Crear Query (Q), Key (K), Value (V)</h3>
+                <pre style="background: white; color: #333;">
+Q = X · Wq
+K = X · Wk  
+V = X · Wv
+
+donde X es la entrada y W son matrices aprendidas
+</pre>
+                
+                <h3 style="margin-top: 30px;">Paso 2: Calcular Attention Weights</h3>
+                <pre style="background: white; color: #333;">
+Attention = softmax(Q·K^T / √d_k)
+
+(d_k = dimensión, para estabilizar valores)
+</pre>
+                
+                <h3 style="margin-top: 30px;">Paso 3: Aplicar a Values</h3>
+                <pre style="background: white; color: #333;">
+Output = Attention · V
+</pre>
+            </div>
+            
+            <div class="highlight" style="margin-top: 30px;">
+                <strong>No necesitan memorizar esto</strong>, solo entender que:<br>
+                • Es álgebra lineal + softmax<br>
+                • Se puede calcular eficientemente<br>
+                • Se aprende durante entrenamiento
+            </div>
+        </div>
+
+        <!-- Slide 21: Capabilities Intro -->
+        <div class="slide center">
+            <h1>¿Qué Pueden Hacer Los LLMs?</h1>
+            
+            <h2 style="margin-top: 60px;">De Transformers a GPT-3</h2>
+            
+            <div class="timeline" style="margin-top: 60px; text-align: left;">
+                <div class="timeline-item">
+                    <strong>Transformer (2017)</strong><br>
+                    Arquitectura base
+                </div>
+                <div class="timeline-item">
+                    <strong>BERT, GPT-2 (2018-2019)</strong><br>
+                    Primeros modelos grandes
+                </div>
+                <div class="timeline-item">
+                    <strong>GPT-3 (2020)</strong><br>
+                    175 mil millones de parámetros
+                </div>
+                <div class="timeline-item timeline-highlight">
+                    <strong>ChatGPT (2023)</strong><br>
+                    El que todos conocen
+                </div>
+            </div>
+            
+            <h2 style="margin-top: 60px; font-size: 2em;">
+                <strong>Todos basados en Transformers 🎯</strong>
+            </h2>
+        </div>
+
+        <!-- Slide 22: Capabilities -->
+        <div class="slide">
+            <h1>Capacidades Sorprendentes</h1>
+            
+            <h2>Ejemplos de GPT-3 (Stanford CS324):</h2>
+            
+            <div style="margin-top: 30px;">
+                <h3>1. Language Modeling</h3>
+                <p>Perplexity: <strong>20.5</strong> (state-of-the-art)</p>
+                
+                <h3 style="margin-top: 25px;">2. Question Answering</h3>
+                <pre style="font-size: 1em;">
+Q: What school did Burne Hogarth establish?
+A: School of Visual Arts ✓
+</pre>
+                
+                <h3 style="margin-top: 25px;">3. Translation</h3>
+                <p>Iguala sistemas supervisados <strong>sin entrenamiento específico</strong></p>
+                
+                <h3 style="margin-top: 25px;">4. Arithmetic</h3>
+                <p>Suma, resta, multiplicación (2-5 dígitos)</p>
+                
+                <h3 style="margin-top: 25px;">5. Novel Tasks</h3>
+                <ul>
+                    <li>Usar palabras inventadas en oraciones</li>
+                    <li>Corregir gramática</li>
+                    <li>Generar artículos de noticias</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Slide 23: In-Context Learning -->
+        <div class="slide">
+            <h1>In-Context Learning</h1>
+            
+            <h2>La "Magia" de los Prompts:</h2>
+            
+            <div class="highlight" style="margin-top: 40px;">
+                <strong>Few-shot learning:</strong> Aprende de ejemplos en el prompt
+            </div>
+            
+            <pre style="font-size: 1.1em; margin-top: 30px;">
+Q: Where is MIT?
+A: Cambridge
+
+Q: Where is University of Washington?
+A: Seattle
+
+Q: Where is Stanford University?
+A: <span class="checkmark" style="font-size: 1.2em;">Stanford</span>
+</pre>
+            
+            <h3 style="margin-top: 40px;"><span class="checkmark">✓</span> Ventajas:</h3>
+            <ul style="font-size: 1.2em;">
+                <li>GPT-3 <strong>aprende del contexto</strong></li>
+                <li>Sin necesidad de re-entrenar</li>
+                <li>Funciona con <strong>pocos ejemplos</strong></li>
+                <li>Muy flexible</li>
+            </ul>
+        </div>
+
+        <!-- Slide 24: Connection to Project -->
+        <div class="slide">
+            <h1>Conexión con Tu Proyecto</h1>
+            
+            <h2>¿Cómo aplica esto?</h2>
+            
+            <div class="two-column" style="margin-top: 40px;">
+                <div>
+                    <h3>Sentence Embeddings:</h3>
+                    <ul>
+                        <li>Clasificación de texto</li>
+                        <li>Búsqueda semántica</li>
+                        <li>Detección de duplicados</li>
+                        <li>Clustering</li>
+                    </ul>
+                    
+                    <h3 style="margin-top: 30px;">Transformers:</h3>
+                    <ul>
+                        <li>Fine-tune modelos pre-entrenados</li>
+                        <li>Generación de texto</li>
+                        <li>Question answering</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3>Attention:</h3>
+                    <ul>
+                        <li>Interpretar decisiones</li>
+                        <li>Visualizar qué es importante</li>
+                        <li>Debugging de modelos</li>
+                    </ul>
+                    
+                    <h3 style="margin-top: 30px;">Prompting:</h3>
+                    <ul>
+                        <li>Usar GPT-3/4 sin entrenar</li>
+                        <li>Few-shot learning</li>
+                        <li>Prototipado rápido</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="highlight" style="margin-top: 40px; font-size: 1.2em;">
+                <strong>💬 Pregunta al grupo:</strong> ¿Qué aplicación les interesa explorar?
+            </div>
+        </div>
+
+        <!-- Slide 25: Recap -->
+        <div class="slide">
+            <h1>📝 Recap: Lo Que Aprendimos</h1>
+            
+            <div style="margin-top: 40px;">
+                <h3><span class="checkmark">✓</span> Types of Embeddings</h3>
+                <p>Word → Sentence → Document<br>Diferentes niveles de abstracción</p>
+                
+                <h3 style="margin-top: 30px;"><span class="checkmark">✓</span> Attention Mechanism</h3>
+                <p>Resolver el information bottleneck<br>Enfocarse en partes relevantes</p>
+                
+                <h3 style="margin-top: 30px;"><span class="checkmark">✓</span> Transformers</h3>
+                <p>Solo attention, sin RNNs<br>Self-attention es la clave<br>Base de TODOS los LLMs modernos</p>
+                
+                <h3 style="margin-top: 30px;"><span class="checkmark">✓</span> Capabilities</h3>
+                <p>GPT-3 hace tareas sorprendentes<br>In-context learning funciona</p>
+            </div>
+            
+            <div class="highlight" style="margin-top: 40px; font-size: 1.3em;">
+                <strong>💡 Insight Principal:</strong><br>
+                Attention revolucionó NLP → Transformers → LLMs modernos
+            </div>
+        </div>
+
+        <!-- Slide 26: Learning Journey -->
+        <div class="slide">
+            <h1>El Camino del Aprendizaje</h1>
+            
+            <div class="timeline" style="margin-top: 60px;">
+                <div class="timeline-item">
+                    <strong>Sesión 1:</strong> Presentación del curso
+                </div>
+                <div class="timeline-item">
+                    <strong>Sesión 2:</strong> Word2Vec y Embeddings estáticos
+                </div>
+                <div class="timeline-item timeline-highlight" style="background: #e3f2fd;">
+                    <strong>Sesión 3 (HOY):</strong> Attention y Transformers
+                </div>
+                <div class="timeline-item">
+                    <strong>Sesión 4:</strong> Fine-tuning y Adaptación
+                </div>
+                <div class="timeline-item">
+                    <strong>Sesiones 5+:</strong> Tu proyecto 🚀
+                </div>
+            </div>
+            
+            <div class="highlight" style="margin-top: 60px; font-size: 1.3em;">
+                <strong>Progresión conceptual:</strong><br>
+                Representación → Attention → Arquitectura → Aplicación
+            </div>
+        </div>
+
+        <!-- Slide 27: Next Session -->
+        <div class="slide">
+            <h1>Próxima Sesión</h1>
+            
+            <h2 style="margin-top: 40px;">📚 Sesión 4: Fine-tuning y Adaptación</h2>
+            
+            <h3>Temas:</h3>
+            <ul style="font-size: 1.2em;">
+                <li>¿Cómo adaptar modelos pre-entrenados?</li>
+                <li>Técnicas de fine-tuning</li>
+                <li>LoRA y QLoRA (eficiente)</li>
+                <li>Prompt engineering avanzado</li>
+                <li>Preparación para tu proyecto</li>
+            </ul>
+            
+            <h3 style="margin-top: 60px;">🏠 Para casa (opcional):</h3>
+            <ul style="font-size: 1.2em;">
+                <li>Explorar más con sentence-transformers</li>
+                <li>Probar diferentes modelos</li>
+                <li>Pensar en aplicación para tu proyecto</li>
+                <li>Leer sobre fine-tuning (si hay tiempo)</li>
+            </ul>
+        </div>
+
+        <!-- Slide 28: Referencias -->
+        <div class="slide">
+            <h1>Fuentes y Recursos</h1>
+            
+            <h3>📖 Libros:</h3>
+            <p style="font-size: 1.1em;">
+                <strong>Hands-On Large Language Models</strong><br>
+                Jay Alammar & Maarten Grootendorst<br>
+                Chapter 1: Understanding Language Models
+            </p>
+            
+            <h3 style="margin-top: 30px;">📄 Papers clave:</h3>
+            <ul>
+                <li><strong>Attention:</strong> Bahdanau et al. (2014)</li>
+                <li><strong>Transformers:</strong> Vaswani et al. (2017) - "Attention is All You Need"</li>
+                <li><strong>GPT-3:</strong> Brown et al. (2020)</li>
+            </ul>
+            
+            <h3 style="margin-top: 30px;">🎓 Cursos:</h3>
+            <ul>
+                <li>Stanford CS324 - Capabilities Lecture</li>
+                <li>Jay Alammar's blog: jalammar.github.io</li>
+            </ul>
+            
+            <h3 style="margin-top: 30px;">📧 Dudas:</h3>
+            <p style="font-size: 1.2em;">franciscop@ciencias.unam.mx</p>
+        </div>
+    </div>
+
+    <div class="slide-number">
+        <span id="current-slide">1</span> / <span id="total-slides">28</span>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="previousSlide()">← Anterior</button>
+        <button class="btn" onclick="nextSlide()">Siguiente →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        
+        document.getElementById('total-slides').textContent = totalSlides;
+        
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            document.getElementById('current-slide').textContent = currentSlide + 1;
+        }
+        
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+        
+        function previousSlide() {
+            showSlide(currentSlide - 1);
+        }
+        
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                previousSlide();
+            } else if (e.key === 'Home') {
+                showSlide(0);
+            } else if (e.key === 'End') {
+                showSlide(totalSlides - 1);
+            }
+        });
+    </script>
+</body>
+</html>

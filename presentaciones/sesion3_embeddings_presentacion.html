@@ -1,0 +1,704 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sesión 2: De Palabras a Embeddings</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Fira+Code&display=swap');
+        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #333;
+            overflow: hidden;
+        }
+        
+        .slides-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .slide {
+            display: none;
+            background: white;
+            width: 90vw;
+            max-width: 1200px;
+            height: 85vh;
+            max-height: 700px;
+            padding: 60px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow-y: auto;
+        }
+        
+        .slide.active { display: block; animation: fadeIn 0.5s; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        h1 {
+            font-size: 3em;
+            font-weight: 700;
+            color: #1e3c72;
+            margin-bottom: 30px;
+            line-height: 1.2;
+        }
+        
+        h2 {
+            font-size: 2em;
+            font-weight: 600;
+            color: #2a5298;
+            margin: 30px 0 20px 0;
+        }
+        
+        h3 {
+            font-size: 1.5em;
+            font-weight: 600;
+            color: #4a90e2;
+            margin: 20px 0 15px 0;
+        }
+        
+        p, li {
+            font-size: 1.2em;
+            line-height: 1.6;
+            margin-bottom: 15px;
+        }
+        
+        ul, ol {
+            margin-left: 30px;
+            margin-bottom: 20px;
+        }
+        
+        code {
+            font-family: 'Fira Code', monospace;
+            background: #f5f5f5;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        
+        pre {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 8px;
+            overflow-x: auto;
+            margin: 20px 0;
+            font-family: 'Fira Code', monospace;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+        
+        .image-placeholder {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 60px;
+            text-align: center;
+            border-radius: 12px;
+            margin: 20px 0;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            gap: 15px;
+            z-index: 1000;
+        }
+        
+        .btn {
+            background: white;
+            border: none;
+            padding: 15px 25px;
+            border-radius: 50px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            transition: all 0.3s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        
+        .slide-number {
+            position: fixed;
+            bottom: 30px;
+            left: 30px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 50px;
+            font-weight: 600;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        
+        .subtitle {
+            font-size: 1.5em;
+            color: #666;
+            margin-top: 20px;
+        }
+        
+        .center { text-align: center; }
+        
+        .emoji { font-size: 1.5em; }
+        
+        .highlight {
+            background: #fff3cd;
+            padding: 20px;
+            border-left: 4px solid #ffc107;
+            margin: 20px 0;
+            border-radius: 4px;
+        }
+        
+        .two-column {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            margin: 20px 0;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        th {
+            background: #1e3c72;
+            color: white;
+            font-weight: 600;
+        }
+        
+        .checkmark { color: #28a745; font-weight: bold; }
+        .xmark { color: #dc3545; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="slides-container">
+        <!-- Slide 1: Portada -->
+        <div class="slide active center">
+            <h1 style="font-size: 3.5em; margin-top: 100px;">De Palabras a Embeddings</h1>
+            <p class="subtitle">Cómo las Computadoras Entienden Lenguaje</p>
+            <p style="margin-top: 80px; font-size: 1.3em;">
+                <strong>Proyecto I - Introducción a Large Language Models</strong><br>
+                Prof. Francisco Pérez Carbajal<br>
+                Facultad de Ciencias, UNAM<br>
+                <em>Sesión 2</em>
+            </p>
+        </div>
+
+        <!-- Slide 2: El Problema -->
+        <div class="slide">
+            <h1>🤔 ¿Cómo Entienden las Computadoras el Lenguaje?</h1>
+            <h2>El desafío:</h2>
+            <ul>
+                <li>Computadoras solo procesan <strong>números</strong> (0s y 1s)</li>
+                <li>El texto es inherentemente <strong>NO estructurado</strong></li>
+                <li>Necesitamos traducir: <strong>Lenguaje → Números</strong></li>
+            </ul>
+            
+            <div class="highlight" style="margin-top: 40px;">
+                <h3>Ejemplo:</h3>
+                <pre style="background: white; color: #333; text-align: center; font-size: 1.3em;">
+"El gato come pescado"
+         ↓
+    [¿números?]
+         ↓
+Computadora puede procesarlo ✓</pre>
+            </div>
+        </div>
+
+        <!-- Slide 3: Historia -->
+        <div class="slide">
+            <h1>Timeline: Evolución de Representaciones</h1>
+            <div style="margin-top: 40px;">
+                <h3>1950s-1990s</h3>
+                <p>Reglas manuales y lógica simbólica</p>
+                
+                <h3>2000s</h3>
+                <p>Bag-of-Words: Contar palabras</p>
+                
+                <h3>2013 🔥</h3>
+                <p><strong>Word2Vec: Embeddings densos</strong></p>
+                
+                <h3>2017</h3>
+                <p>Transformers (Attention mechanism)</p>
+                
+                <h3>2023</h3>
+                <p>ChatGPT y LLMs modernos</p>
+            </div>
+            
+            <div class="highlight" style="margin-top: 30px;">
+                <strong>💡 Hoy:</strong> Del conteo al significado
+            </div>
+            
+            <div class="image-placeholder">
+                📊 Figura 1-1: History of Language AI<br>
+                <small>(Del libro Hands-On LLMs)</small>
+            </div>
+        </div>
+
+        <!-- Slide 4: Bag-of-Words -->
+        <div class="slide">
+            <h1>Bag-of-Words (BoW)</h1>
+            <h2>Idea: Representar texto contando palabras</h2>
+            
+            <h3 style="margin-top: 30px;">Ejemplo:</h3>
+            <pre style="font-size: 1.1em;">
+Documento 1: "El gato come pescado"
+Documento 2: "El perro come carne"
+
+Vocabulario: [el, gato, perro, come, pescado, carne]
+
+Vectores resultantes:
+Doc 1: [1, 1, 0, 1, 1, 0]
+Doc 2: [1, 0, 1, 1, 0, 1]</pre>
+            
+            <h3 style="margin-top: 30px;"><span class="checkmark">✅</span> Ventajas:</h3>
+            <ul>
+                <li>Simple de implementar</li>
+                <li>Interpretable</li>
+                <li>Funciona para tareas básicas</li>
+            </ul>
+            
+            <div class="image-placeholder">
+                📊 Figura 1-5: Bag-of-words illustration
+            </div>
+        </div>
+
+        <!-- Slide 5: Demo Código -->
+        <div class="slide">
+            <h1>👨‍💻 DEMO: Bag-of-Words en Python</h1>
+            <pre>
+from sklearn.feature_extraction.text import CountVectorizer
+
+textos = [
+    "El gato come pescado",
+    "El perro come carne",  
+    "El gato y el perro son amigos"
+]
+
+vectorizer = CountVectorizer()
+X = vectorizer.fit_transform(textos)
+
+print("Vocabulario:", vectorizer.get_feature_names_out())
+print("Vectores:", X.toarray())</pre>
+            
+            <div class="highlight" style="margin-top: 30px;">
+                <strong>🎯 Actividad:</strong> Agrega tu propia oración
+            </div>
+        </div>
+
+        <!-- Slide 6: Limitaciones -->
+        <div class="slide">
+            <h1><span class="xmark">❌</span> Problemas Fundamentales</h1>
+            
+            <h3>1️⃣ Ignora el ORDEN</h3>
+            <pre>"El gato persigue al ratón"
+"El ratón persigue al gato"
+→ ¡Misma representación!</pre>
+            
+            <h3>2️⃣ No captura SIGNIFICADO</h3>
+            <pre>"gato" ≠ "felino"
+(aunque significan lo mismo)</pre>
+            
+            <h3>3️⃣ Alta DIMENSIONALIDAD</h3>
+            <pre>Vocabulario: 50,000 palabras
+→ Vector: 50,000 dimensiones
+→ Casi todo son ceros (sparse)</pre>
+            
+            <div class="highlight" style="margin-top: 30px; font-size: 1.2em;">
+                <strong>🤔 ¿Cómo capturamos que "gato" y "felino" son similares?</strong>
+            </div>
+        </div>
+
+        <!-- Slide 7: Embeddings -->
+        <div class="slide">
+            <h1>💡 Embeddings: La Solución</h1>
+            
+            <h2>Definición:</h2>
+            <p style="font-size: 1.3em; background: #e3f2fd; padding: 20px; border-radius: 8px;">
+                <strong>Vectores densos que capturan el SIGNIFICADO de palabras</strong>
+            </p>
+            
+            <h3 style="margin-top: 40px;">Comparación:</h3>
+            <table>
+                <tr>
+                    <th>Bag-of-Words</th>
+                    <th>Embeddings</th>
+                </tr>
+                <tr>
+                    <td>"¿Está presente?"</td>
+                    <td>"¿Qué significa?"</td>
+                </tr>
+                <tr>
+                    <td>Sparse (muchos 0s)</td>
+                    <td>Denso (todos valores)</td>
+                </tr>
+                <tr>
+                    <td>Alta dimensión</td>
+                    <td>Baja dimensión (300)</td>
+                </tr>
+                <tr>
+                    <td>Ignora significado</td>
+                    <td>Captura significado</td>
+                </tr>
+            </table>
+            
+            <h3>Ejemplo:</h3>
+            <pre>"gato" → [0.2, 0.8, -0.3, 0.5, ...]
+         ↑
+    300 valores que capturan su esencia</pre>
+        </div>
+
+        <!-- Slide 8: Word2Vec -->
+        <div class="slide">
+            <h1>Word2Vec: Aprendiendo Significado</h1>
+            
+            <div class="highlight" style="font-size: 1.2em;">
+                <strong>💬 Idea Central:</strong><br>
+                <em>"Conocerás una palabra por las compañías que tiene"</em><br>
+                — John Rupert Firth
+            </div>
+            
+            <h3 style="margin-top: 40px;">Ejemplo:</h3>
+            <p><strong>Contextos donde aparece "gato":</strong></p>
+            <ul>
+                <li>"El <strong>___</strong> come pescado"</li>
+                <li>"El <strong>___</strong> maúlla"</li>
+                <li>"El <strong>___</strong> tiene bigotes"</li>
+                <li>"El <strong>___</strong> y el perro juegan"</li>
+            </ul>
+            
+            <p style="font-size: 1.3em; margin-top: 30px;">
+                → La red neuronal aprende qué significa "gato"<br>
+                &nbsp;&nbsp;&nbsp;por las palabras que aparecen cerca
+            </p>
+            
+            <div class="highlight" style="margin-top: 30px;">
+                <strong>Resultado:</strong> Embedding de "gato"
+            </div>
+        </div>
+
+        <!-- Slide 9: Entrenamiento -->
+        <div class="slide">
+            <h1>¿Cómo se Entrena Word2Vec?</h1>
+            
+            <h2>Tarea: Predecir si dos palabras son VECINAS</h2>
+            
+            <h3>Entrada: Par de palabras</h3>
+            <pre style="font-size: 1.2em;">
+"gato" + "pescado"  →  ¿Vecinos? <span class="checkmark">✓</span>
+"gato" + "mesa"     →  ¿Vecinos? <span class="xmark">✗</span></pre>
+            
+            <h3>Durante entrenamiento:</h3>
+            <ol style="font-size: 1.2em;">
+                <li>Red neuronal hace predicción</li>
+                <li>Compara con respuesta correcta</li>
+                <li>Ajusta embeddings para mejorar</li>
+                <li>Repite millones de veces</li>
+            </ol>
+            
+            <div class="highlight" style="margin-top: 30px; font-size: 1.2em;">
+                <strong>Resultado:</strong><br>
+                → Palabras con contextos similares<br>
+                → Embeddings similares
+            </div>
+            
+            <div class="image-placeholder">
+                🧠 Figura 1-7: Neural network training
+            </div>
+        </div>
+
+        <!-- Slide 10: Anatomía -->
+        <div class="slide">
+            <h1>¿Qué Representan las Dimensiones?</h1>
+            
+            <h3>Embedding de "bebé":</h3>
+            <pre style="font-size: 1.1em;">
+[0.1, 0.9, 0.8, 0.2, ...]
+  ↑    ↑    ↑    ↑
+(ejemplos simplificados)
+Comida Humano Joven Alegre</pre>
+            
+            <h3>Embedding de "manzana":</h3>
+            <pre style="font-size: 1.1em;">
+[0.8, 0.1, 0.2, 0.5, ...]
+  ↑    ↑    ↑    ↑
+Comida Humano Joven Alegre</pre>
+            
+            <div class="highlight" style="margin-top: 40px;">
+                <strong>⚠️ Nota:</strong> En realidad las dimensiones NO tienen
+                interpretaciones tan claras, pero capturan
+                patrones útiles para la computadora
+            </div>
+            
+            <div class="image-placeholder">
+                📊 Figura 1-8: Embedding properties
+            </div>
+        </div>
+
+        <!-- Slide 11: Similitud -->
+        <div class="slide">
+            <h1>Embeddings Capturan Similitud</h1>
+            
+            <h2>Cálculo de distancia en espacio vectorial:</h2>
+            <pre style="font-size: 1.3em;">
+similitud("gato", "felino") = 0.85  ⬆️ <span style="color: green;">Alta</span>
+similitud("gato", "perro")  = 0.73  ➡️ <span style="color: orange;">Media</span>
+similitud("gato", "mesa")   = 0.12  ⬇️ <span style="color: red;">Baja</span></pre>
+            
+            <h3 style="margin-top: 40px;">Visualización 2D:</h3>
+            <pre style="font-size: 1.2em; text-align: center;">
+      gato •
+           • felino
+    • perro
+ • animal
+
+
+         • mesa
+       • silla
+</pre>
+            
+            <div class="highlight" style="font-size: 1.3em;">
+                <strong>Palabras similares → Cerca en el espacio</strong>
+            </div>
+            
+            <div class="image-placeholder">
+                📊 Figura 1-9: Embeddings similarity
+            </div>
+        </div>
+
+        <!-- Slide 12: Aritmética -->
+        <div class="slide center">
+            <h1>🎩 La "Magia" de los Embeddings</h1>
+            
+            <h2 style="margin-top: 60px;">Operaciones famosas:</h2>
+            <pre style="font-size: 1.5em;">
+Rey - Hombre + Mujer ≈ Reina
+
+París - Francia + México ≈ Ciudad de México
+
+Programar - Código + Receta ≈ Cocinar</pre>
+            
+            <h3 style="margin-top: 60px;">¿Por qué funciona?</h3>
+            <ul style="font-size: 1.2em; text-align: left;">
+                <li>→ Embeddings capturan relaciones conceptuales</li>
+                <li>→ "Realeza" es un concepto que se puede sumar/restar</li>
+                <li>→ "Capital de" es una relación que se preserva</li>
+            </ul>
+            
+            <div class="highlight" style="margin-top: 30px; text-align: left;">
+                <strong>⚠️</strong> No siempre funciona perfectamente,
+                pero muestra el poder de las representaciones
+            </div>
+        </div>
+
+        <!-- Slide 13: Transición -->
+        <div class="slide center">
+            <h1>🖥️ Hands-On Time!</h1>
+            
+            <h2 style="margin-top: 60px;">Notebook: Explorando Word2Vec</h2>
+            
+            <div style="margin-top: 60px; text-align: left;">
+                <h3>Vamos a:</h3>
+                <ul style="font-size: 1.3em;">
+                    <li><span class="checkmark">✓</span> Cargar embeddings pre-entrenados</li>
+                    <li><span class="checkmark">✓</span> Calcular similitudes entre palabras</li>
+                    <li><span class="checkmark">✓</span> Hacer operaciones (analogías)</li>
+                    <li><span class="checkmark">✓</span> Visualizar en 2D</li>
+                </ul>
+            </div>
+            
+            <div class="highlight" style="margin-top: 60px;">
+                <strong style="font-size: 1.3em;">📱 Abran su Colab y sigamos juntos</strong>
+            </div>
+        </div>
+
+        <!-- Slide 14: Recap -->
+        <div class="slide">
+            <h1>Resumen de la Sesión</h1>
+            
+            <div class="two-column">
+                <div>
+                    <h3><span class="checkmark">✅</span> Bag-of-Words</h3>
+                    <ul>
+                        <li>Representa texto contando palabras</li>
+                        <li>Simple pero limitado</li>
+                        <li>Ignora significado y orden</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h3><span class="checkmark">✅</span> Embeddings (Word2Vec)</h3>
+                    <ul>
+                        <li>Vectores densos que capturan significado</li>
+                        <li>Palabras similares → vectores cercanos</li>
+                        <li>Base para modelos modernos</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <h3 style="margin-top: 40px;"><span class="checkmark">✅</span> Aplicación práctica</h3>
+            <ul>
+                <li>Calculamos similitudes</li>
+                <li>Hicimos analogías</li>
+                <li>Visualizamos en 2D</li>
+            </ul>
+            
+            <div class="highlight" style="margin-top: 40px; font-size: 1.2em;">
+                <strong>💡 Insight clave:</strong> Representar bien el lenguaje
+                es fundamental para Language AI
+            </div>
+        </div>
+
+        <!-- Slide 15: Conexión LLMs -->
+        <div class="slide center">
+            <h1>¿Por Qué Importa Para LLMs?</h1>
+            
+            <pre style="font-size: 1.4em; margin-top: 60px;">
+              Embeddings
+                  ↓
+     Base de modelos modernos
+                  ↓
+      BERT, GPT, Transformers
+                  ↓
+          ChatGPT, Claude
+                  ↓
+     Las aplicaciones que conoces</pre>
+            
+            <div class="highlight" style="margin-top: 60px; text-align: left;">
+                <strong style="font-size: 1.3em;">🔑 Todos los LLMs usan embeddings en su núcleo</strong>
+            </div>
+            
+            <h3 style="margin-top: 60px; text-align: left;">Diferencia:</h3>
+            <ul style="text-align: left; font-size: 1.2em;">
+                <li><strong>Word2Vec:</strong> Embeddings de palabras</li>
+                <li><strong>LLMs:</strong> Embeddings contextuales<br>
+                    <small>(la misma palabra puede tener diferentes embeddings según el contexto)</small>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Slide 16: Próxima -->
+        <div class="slide">
+            <h1>Preview: Sesión 3</h1>
+            
+            <h2 style="margin-top: 40px;">📚 Tipos de Embeddings</h2>
+            
+            <h3>Temas:</h3>
+            <ul style="font-size: 1.2em;">
+                <li>Sentence embeddings (frases completas)</li>
+                <li>Document embeddings (documentos)</li>
+                <li>Modelos modernos (BERT, Sentence-BERT)</li>
+                <li>Aplicaciones prácticas</li>
+            </ul>
+            
+            <h3 style="margin-top: 60px;">🏠 Para casa (opcional):</h3>
+            <ul style="font-size: 1.2em;">
+                <li>Explorar más palabras en el notebook</li>
+                <li>Pensar: ¿Qué aplicación podrían hacer con similitud semántica?</li>
+            </ul>
+            
+            <div class="highlight" style="margin-top: 60px; font-size: 1.3em;">
+                <strong>Nos vemos la próxima clase 👋</strong>
+            </div>
+        </div>
+
+        <!-- Slide 17: Referencias -->
+        <div class="slide">
+            <h1>Fuentes y Recursos</h1>
+            
+            <h3>📖 Libro principal:</h3>
+            <p style="font-size: 1.2em;">
+                <strong>Hands-On Large Language Models</strong><br>
+                Jay Alammar & Maarten Grootendorst<br>
+                Chapter 1: Understanding Language Models
+            </p>
+            
+            <h3 style="margin-top: 40px;">📄 Papers clave:</h3>
+            <ul>
+                <li>Word2Vec: Mikolov et al. (2013)</li>
+                <li>GloVe: Pennington et al. (2014)</li>
+            </ul>
+            
+            <h3 style="margin-top: 40px;">🔗 Recursos adicionales:</h3>
+            <ul>
+                <li>Jay Alammar's blog: jalammar.github.io</li>
+                <li>Word2Vec tutorial: tensorflow.org</li>
+                <li>Gensim documentation: radimrehurek.com</li>
+            </ul>
+            
+            <h3 style="margin-top: 40px;">📧 Dudas:</h3>
+            <p style="font-size: 1.2em;">franciscop@ciencias.unam.mx</p>
+        </div>
+    </div>
+
+    <div class="slide-number">
+        <span id="current-slide">1</span> / <span id="total-slides">17</span>
+    </div>
+
+    <div class="controls">
+        <button class="btn" onclick="previousSlide()">← Anterior</button>
+        <button class="btn" onclick="nextSlide()">Siguiente →</button>
+    </div>
+
+    <script>
+        let currentSlide = 0;
+        const slides = document.querySelectorAll('.slide');
+        const totalSlides = slides.length;
+        
+        document.getElementById('total-slides').textContent = totalSlides;
+        
+        function showSlide(n) {
+            slides[currentSlide].classList.remove('active');
+            currentSlide = (n + totalSlides) % totalSlides;
+            slides[currentSlide].classList.add('active');
+            document.getElementById('current-slide').textContent = currentSlide + 1;
+        }
+        
+        function nextSlide() {
+            showSlide(currentSlide + 1);
+        }
+        
+        function previousSlide() {
+            showSlide(currentSlide - 1);
+        }
+        
+        // Navegación con teclado
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowRight' || e.key === ' ') {
+                nextSlide();
+            } else if (e.key === 'ArrowLeft') {
+                previousSlide();
+            } else if (e.key === 'Home') {
+                showSlide(0);
+            } else if (e.key === 'End') {
+                showSlide(totalSlides - 1);
+            }
+        });
+    </script>
+</body>
+</html>
